@@ -1,3 +1,16 @@
+
+const http = require('http');
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Health check: Project is awake!');
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Project is awake!');
+  }
+});
+server.listen(process.env.PORT || 3000);
+
 const fetch = require('node-fetch');
 
 const exchanges = [
