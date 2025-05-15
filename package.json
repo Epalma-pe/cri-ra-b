@@ -1,0 +1,11 @@
+{
+  "name": "crypto-rates",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
