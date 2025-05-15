@@ -68,7 +68,7 @@ async function fetchRates() {
 
       for (const other of otherExchanges) {
         const otherComprar = other.totalAsk;
-        const threshold = otherComprar * 1.0037;
+        const threshold = otherComprar * 1.0034;
 
         if (vender > threshold) {
           const key = `${target.name}_vender_${otherExchanges.indexOf(other)}`;
@@ -89,15 +89,7 @@ async function fetchRates() {
   }
 }
 
-// Send test Telegram message immediately on start
-sendTelegramMessage('Test message from Render at startup');
-
-// Send test Telegram message every 30 minutes
-setInterval(() => {
-  sendTelegramMessage(`Test message from Render at ${new Date().toLocaleString()}`);
-}, 60 * 60 * 1000); // Every 30 minutes
-
-// Run fetchRates every 6 minutes
+// Run fetchRates every 10 minutes
 setInterval(fetchRates, 10 * 60 * 1000);
 
 fetchRates();
