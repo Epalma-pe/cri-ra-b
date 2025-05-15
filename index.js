@@ -95,9 +95,9 @@ sendTelegramMessage('Test message from Render at startup');
 // Send test Telegram message every 30 minutes
 setInterval(() => {
   sendTelegramMessage(`Test message from Render at ${new Date().toLocaleString()}`);
-}, 30 * 60 * 1000); // Every 30 minutes
+}, 11 * 60 * 1000); // Every 30 minutes
 
 // Run fetchRates every 6 minutes
-setInterval(fetchRates, 6 * 60 * 1000);
+setInterval(fetchRates, 10 * 60 * 1000);
 
 fetchRates();
