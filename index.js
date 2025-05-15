@@ -9,8 +9,8 @@ const exchanges = [
   { name: 'Bybit P2P', api: 'bybitp2p' }
 ];
 
-const BOT_TOKEN = 'your_bot_token'; // Replace with your Telegram bot token
-const CHAT_ID = 'your_chat_id'; // Replace with your Telegram chat ID
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const CHAT_ID = process.env.CHAT_ID;
 let lastNotified = {};
 
 async function sendTelegramMessage(message) {
