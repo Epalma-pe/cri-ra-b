@@ -77,7 +77,7 @@ async function fetchRates() {
 }
 
 // Run every 5 minutes
-setInterval(fetchRates, 1 * 60 * 1000);
+setInterval(fetchRates, 4 * 60 * 1000);
 
 // Run immediately on start
 fetchRates();
