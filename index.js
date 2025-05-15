@@ -89,8 +89,15 @@ async function fetchRates() {
   }
 }
 
-// Run every 5 minutes
-setInterval(fetchRates, 4 * 60 * 1000);
+// Send test Telegram message immediately on start
+sendTelegramMessage('Test message from Render at startup');
 
-// Run immediately on start
+// Send test Telegram message every 30 minutes
+setInterval(() => {
+  sendTelegramMessage(`Test message from Render at ${new Date().toLocaleString()}`);
+}, 30 * 60 * 1000); // Every 30 minutes
+
+// Run fetchRates every 6 minutes
+setInterval(fetchRates, 6 * 60 * 1000);
+
 fetchRates();
