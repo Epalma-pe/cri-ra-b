@@ -11,7 +11,7 @@ const server = http.createServer((req, res) => {
 server.listen(process.env.PORT || 3000);
 
 const fetch = require('node-fetch');
-const TEST_THRESHOLD = 0.012;
+
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 let notified = {}; // key: exchange pair, value: true/false
@@ -22,14 +22,11 @@ async function sendTelegramMessage(message) {
     const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`);
     const data = await resp.json();
     if (data.ok && data.result && data.result.message_id) {
-      console.log('Telegram message sent:', message);
       return data.result.message_id;
     } else {
-      console.error('Telegram sendMessage response error:', data);
       return null;
     }
   } catch (e) {
-    console.error('Error sending Telegram message:', e);
     return null;
   }
 }
@@ -38,38 +35,24 @@ async function deleteTelegramMessage(msgId) {
   try {
     const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage?chat_id=${CHAT_ID}&message_id=${msgId}`);
     const data = await resp.json();
-    if (data.ok) {
-      console.log('Telegram message deleted:', msgId);
-      return true;
-    } else {
-      console.error('Telegram deleteMessage response error:', data);
-      return false;
-    }
+    return !!data.ok;
   } catch (e) {
-    console.error('Error deleting Telegram message:', e);
     return false;
   }
 }
 
-// Improved fetchRates function
-async function fetchExchangeApi(url, name) {
+async function fetchExchangeApi(url) {
   try {
     const res = await fetch(url);
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`[${name}] API error:`, res.status, text);
-      return null;
-    }
+    if (!res.ok) return null;
     return await res.json();
-  } catch (e) {
-    console.error(`[${name}] Fetch error:`, e);
+  } catch {
     return null;
   }
 }
 
 async function fetchRates() {
   try {
-    // Define all your APIs
     const apiEndpoints = [
       { name: 'Buenbit', url: 'https://criptoya.com/api/buenbit/USDT/PEN/1' },
       { name: 'SatoshiTango', url: 'https://criptoya.com/api/satoshitango/USDT/PEN/1' },
@@ -79,19 +62,14 @@ async function fetchRates() {
       { name: 'Bybit P2P', url: 'https://criptoya.com/api/bybitp2p/USDT/PEN/1' }
     ];
 
-    // Fetch all APIs in parallel
     const results = await Promise.all(apiEndpoints.map(api =>
-      fetchExchangeApi(api.url, api.name)
+      fetchExchangeApi(api.url)
     ));
 
-    // If all are null, bail out
-    if (results.every(res => res === null)) {
-      throw new Error('All exchange APIs failed');
-    }
+    if (results.every(res => res === null)) return;
 
     const [buenbit, satoshitango, lemoncash, buda, binanceP2P, bybitP2P] = results;
 
-    // Only use exchanges that responded successfully
     const validExchanges = [
       { name: 'Buenbit', data: buenbit },
       { name: 'SatoshiTango', data: satoshitango },
@@ -99,12 +77,8 @@ async function fetchRates() {
       { name: 'Buda', data: buda }
     ].filter(ex => ex.data);
 
-    if (!binanceP2P || !bybitP2P || validExchanges.length === 0) {
-      console.error('Critical exchanges failed, skipping this cycle');
-      return;
-    }
+    if (!binanceP2P || !bybitP2P || validExchanges.length === 0) return;
 
-    // -- Your trading opportunity logic --
     for (const target of [
       { name: 'Binance P2P', data: binanceP2P },
       { name: 'Bybit P2P', data: bybitP2P }
@@ -118,7 +92,7 @@ async function fetchRates() {
         const key = `${target.name}_vender_${other.name}`;
         const difference = lowestPrice - otherComprar;
 
-        if (difference > TEST_THRESHOLD) {
+        if (difference > 0.012) {
           if (!notified[key]) {
             const profit = difference * 1000;
             const valinv = otherComprar * 1000;
@@ -130,7 +104,6 @@ async function fetchRates() {
             }
           }
         } else {
-          // If previously notified and message exists, delete it
           if (notified[key] && messageId[key]) {
             await deleteTelegramMessage(messageId[key]);
             notified[key] = false;
@@ -139,11 +112,8 @@ async function fetchRates() {
         }
       }
     }
-    // -- End trading opportunity logic --
-
-    console.log('Rates fetched successfully at', new Date().toLocaleString());
   } catch (e) {
-    console.error('Error fetching rates:', e);
+    // Silent catch on production
   }
 }
 
