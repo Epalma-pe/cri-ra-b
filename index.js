@@ -1,4 +1,3 @@
-
 const http = require('http');
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
@@ -24,14 +23,42 @@ const exchanges = [
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
-let lastNotified = {};
+let notified = {}; // key: exchange pair, value: true/false
+let messageId = {}; // key: exchange pair, value: message_id
 
+// Send a Telegram message and return the message_id
 async function sendTelegramMessage(message) {
   try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`);
-    console.log('Telegram message sent:', message);
+    const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`);
+    const data = await resp.json();
+    if (data.ok && data.result && data.result.message_id) {
+      console.log('Telegram message sent:', message);
+      return data.result.message_id;
+    } else {
+      console.error('Telegram sendMessage response error:', data);
+      return null;
+    }
   } catch (e) {
     console.error('Error sending Telegram message:', e);
+    return null;
+  }
+}
+
+// Delete a Telegram message using its message_id
+async function deleteTelegramMessage(msgId) {
+  try {
+    const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage?chat_id=${CHAT_ID}&message_id=${msgId}`);
+    const data = await resp.json();
+    if (data.ok) {
+      console.log('Telegram message deleted:', msgId);
+      return true;
+    } else {
+      console.error('Telegram deleteMessage response error:', data);
+      return false;
+    }
+  } catch (e) {
+    console.error('Error deleting Telegram message:', e);
+    return false;
   }
 }
 
@@ -65,19 +92,30 @@ async function fetchRates() {
     ]) {
       const comprar = target.data.totalAsk;
       const vender = target.data.totalBid;
+      const lowestPrice = Math.min(comprar, vender);
 
       for (const other of otherExchanges) {
         const otherComprar = other.totalAsk;
-        const threshold = otherComprar * 1.0034;
+        const key = `${target.name}_vender_${otherExchanges.indexOf(other)}`;
+        const difference = lowestPrice - otherComprar;
 
-        if (vender > threshold) {
-          const key = `${target.name}_vender_${otherExchanges.indexOf(other)}`;
-          if (lastNotified[key] !== vender) {
-            const profit = (vender - otherComprar) * 1000;
-            const valinv = (otherComprar) *1000
-            const message = `🚨 Compra en ${exchanges[exchangeData.indexOf(other)].name} a (${otherComprar.toFixed(3)}) y vende en ${target.name} a (${vender.toFixed(3)}) y gana ${profit.toFixed(1)} soles por cada ${valinv.toFixed(0)} soles`;
-            await sendTelegramMessage(message);
-            lastNotified[key] = vender;
+        if (difference > 0.001) {
+          if (!notified[key]) {
+            const profit = difference * 1000;
+            const valinv = otherComprar * 1000;
+            const message = `🚨 Compra en ${exchanges[exchangeData.indexOf(other)].name} a (${otherComprar.toFixed(3)}) y vende en ${target.name} a (${lowestPrice.toFixed(3)}) y gana ${profit.toFixed(1)} soles por cada ${valinv.toFixed(0)} soles`;
+            const msgId = await sendTelegramMessage(message);
+            if (msgId) {
+              notified[key] = true;
+              messageId[key] = msgId;
+            }
+          }
+        } else {
+          // If previously notified and message exists, delete it
+          if (notified[key] && messageId[key]) {
+            await deleteTelegramMessage(messageId[key]);
+            notified[key] = false;
+            messageId[key] = undefined;
           }
         }
       }
