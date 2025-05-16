@@ -11,7 +11,7 @@ const server = http.createServer((req, res) => {
 server.listen(process.env.PORT || 3000);
 
 const fetch = require('node-fetch');
-const TEST_THRESHOLD = -0.045;
+const TEST_THRESHOLD = 0.012;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 let notified = {}; // key: exchange pair, value: true/false
