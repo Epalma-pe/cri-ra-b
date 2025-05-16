@@ -99,7 +99,7 @@ async function fetchRates() {
         const key = `${target.name}_vender_${otherExchanges.indexOf(other)}`;
         const difference = lowestPrice - otherComprar;
 
-        if (difference > 0.001) {
+        if (difference > -0.040) {
           if (!notified[key]) {
             const profit = difference * 1000;
             const valinv = otherComprar * 1000;
